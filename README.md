@@ -1,6 +1,6 @@
 # CNS Memory Core v1.0.9
 
-Persistent memory API for AI systems.
+Lightweight single-node REST API that provides persistent key-value memory for AI agents and applications.
 
 ## What It Does
 
@@ -11,6 +11,7 @@ CNS Memory Core exposes a REST API that allows AI agents and applications to sav
 - API key authentication
 - Redis rate limiting (10 req/60s per IP)
 - SQLite persistence (WAL mode)
+- Single-node deployment (lightweight, runs on one server)
 - Input validation and payload size limits
 - Structured logging
 
