@@ -4,13 +4,14 @@ Simple integration test for CNS Memory Core v1.0.9
 Tests save and load endpoints with proper authentication and error handling.
 """
 
+import os
 import requests
 import json
 import sys
 from time import sleep
 
-BASE_URL = "http://127.0.0.1:8000"
-API_KEY = "demo-key-123"  # Change to match your .env value for local testing
+BASE_URL = os.getenv("CNS_BASE_URL", "http://127.0.0.1:8000")
+API_KEY = os.getenv("CNS_API_KEY", "demo-key-123")  # Falls back for local testing
 
 HEADERS = {
     "X-API-Key": API_KEY,
