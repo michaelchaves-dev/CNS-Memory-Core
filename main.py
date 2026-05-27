@@ -83,7 +83,7 @@ def get_api_key(request: Request):
     return key
 
 
-app = FastAPI(title="CNS Memory Core", version="1.0.9")
+app = FastAPI(title="CNS Memory Core", version="1.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -155,6 +155,75 @@ def load(key: str, _=Depends(rate_limit_dep), __=Depends(get_api_key)):
         raise HTTPException(500, "Database error")
 
 
+@app.delete("/delete")
+def delete(key: str, _=Depends(rate_limit_dep), __=Depends(get_api_key)):
+    """
+    Delete a stored key. Idempotent: returns ok with found=false when the
+    key was never present, so callers can DELETE safely without 404 handling.
+    """
+    if not key or not isinstance(key, str) or not key.strip():
+        raise HTTPException(400, "Missing or invalid 'key'")
+    if len(key) > 256:
+        raise HTTPException(400, "Key exceeds 256 character limit")
+    try:
+        with get_db() as conn:
+            cursor = conn.execute("DELETE FROM cns_memory WHERE key=?", (key,))
+            conn.commit()
+            found = cursor.rowcount > 0
+        logger.info("DELETE key=%s found=%s", key, found)
+        return {"status": "ok", "found": found}
+    except sqlite3.Error as e:
+        logger.error("DELETE DB error: %s", e)
+        raise HTTPException(500, "Database error")
+
+
+@app.get("/list")
+def list_keys(
+    prefix: str = "",
+    limit: int = 100,
+    offset: int = 0,
+    _=Depends(rate_limit_dep),
+    __=Depends(get_api_key),
+):
+    """
+    Enumerate stored keys. Optional `prefix` filter, paginated via limit/offset.
+    Returns keys + timestamps only (not values) so the response stays small.
+    """
+    if limit < 1 or limit > 1000:
+        raise HTTPException(400, "limit must be between 1 and 1000")
+    if offset < 0:
+        raise HTTPException(400, "offset must be >= 0")
+    if len(prefix) > 256:
+        raise HTTPException(400, "prefix exceeds 256 character limit")
+    try:
+        with get_db() as conn:
+            if prefix:
+                # SQL LIKE wildcards in user input must be escaped
+                escaped = prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+                pattern = escaped + "%"
+                rows = conn.execute(
+                    "SELECT key, timestamp FROM cns_memory WHERE key LIKE ? ESCAPE '\\' "
+                    "ORDER BY key LIMIT ? OFFSET ?",
+                    (pattern, limit, offset),
+                ).fetchall()
+                total = conn.execute(
+                    "SELECT COUNT(*) AS c FROM cns_memory WHERE key LIKE ? ESCAPE '\\'",
+                    (pattern,),
+                ).fetchone()["c"]
+            else:
+                rows = conn.execute(
+                    "SELECT key, timestamp FROM cns_memory ORDER BY key LIMIT ? OFFSET ?",
+                    (limit, offset),
+                ).fetchall()
+                total = conn.execute("SELECT COUNT(*) AS c FROM cns_memory").fetchone()["c"]
+        items = [{"key": r["key"], "timestamp": r["timestamp"]} for r in rows]
+        logger.info("LIST prefix=%s returned=%d total=%d", prefix or "-", len(items), total)
+        return {"status": "ok", "items": items, "total": total, "limit": limit, "offset": offset}
+    except sqlite3.Error as e:
+        logger.error("LIST DB error: %s", e)
+        raise HTTPException(500, "Database error")
+
+
 @app.get("/health")
 def health():
-    return {"status": "healthy", "version": "1.0.9"}
+    return {"status": "healthy", "version": "1.1.0"}

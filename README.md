@@ -1,4 +1,4 @@
-# CNS Memory Core v1.0.9
+# CNS Memory Core v1.1.0
 
 Lightweight single-node REST API that provides persistent key-value memory for AI agents and applications.
 
@@ -17,11 +17,25 @@ CNS Memory Core exposes a REST API that allows AI agents and applications to sav
 
 ## Endpoints
 
-| Method | Route          | Description                |
-|--------|----------------|----------------------------|
-| POST   | `/save`        | Store a key-value pair     |
-| GET    | `/load?key=`   | Retrieve a stored value    |
-| GET    | `/health`      | Service health check       |
+| Method | Route                       | Description                                       |
+|--------|-----------------------------|---------------------------------------------------|
+| POST   | `/save`                     | Store a key-value pair                            |
+| GET    | `/load?key=`                | Retrieve a stored value                           |
+| DELETE | `/delete?key=`              | Remove a key (idempotent)                         |
+| GET    | `/list?prefix=&limit=&offset=` | Enumerate keys (paginated, keys + timestamps only) |
+| GET    | `/health`                   | Service health check                              |
+
+### Sample list response
+
+```json
+{
+  "status": "ok",
+  "items": [{"key": "user:1", "timestamp": "2026-05-27 03:45:00"}],
+  "total": 1,
+  "limit": 100,
+  "offset": 0
+}
+```
 
 ## Quick Start
 
@@ -34,6 +48,18 @@ pip install -r requirements.txt
 cp .env.example .env
 uvicorn main:app --reload
 ```
+
+## Running tests
+
+The unit suite stubs out Redis with an in-memory fake so it runs anywhere:
+
+```bash
+pip install -r requirements.txt
+pytest -q
+```
+
+The integration test (`test_load.py`) requires a running server and live
+Redis — CI runs it after the unit suite passes.
 
 ## License
 
