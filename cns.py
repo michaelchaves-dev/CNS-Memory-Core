@@ -8,7 +8,18 @@ import sqlite3, redis
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-API_KEY = os.getenv("CNS_API_KEY", "demo-key-123")
+def _require_api_key() -> str:
+    """Fail closed: never start with a default/demo key."""
+    key = (os.getenv("CNS_API_KEY") or "").strip()
+    if not key:
+        raise RuntimeError(
+            "CNS_API_KEY must be set in the environment. "
+            "Refusing to start with a missing or fallback key."
+        )
+    return key
+
+
+API_KEY = _require_api_key()
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 redis_client = redis.from_url(REDIS_URL, decode_responses=True, socket_connect_timeout=2, socket_timeout=2)
 DB_PATH = Path(__file__).parent / "cns_memory.db"
