@@ -11,7 +11,10 @@ import sys
 from time import sleep
 
 BASE_URL = os.getenv("CNS_BASE_URL", "http://127.0.0.1:8000")
-API_KEY = os.getenv("CNS_API_KEY", "demo-key-123")  # Falls back for local testing
+API_KEY = (os.getenv("CNS_API_KEY") or "").strip()
+if not API_KEY:
+    print("ERROR: CNS_API_KEY must be set (no demo fallback)")
+    sys.exit(1)
 
 HEADERS = {
     "X-API-Key": API_KEY,

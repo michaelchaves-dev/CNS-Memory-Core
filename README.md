@@ -8,12 +8,17 @@ CNS Memory Core exposes a REST API that allows AI agents and applications to sav
 
 ## Features
 
-- API key authentication
+- API key authentication (`CNS_API_KEY` required; no demo fallback)
 - Redis rate limiting (10 req/60s per IP)
 - SQLite persistence (WAL mode)
 - Single-node deployment (lightweight, runs on one server)
 - Input validation and payload size limits
 - Structured logging
+
+## Security
+
+- Set `CNS_API_KEY` as a hosting-platform secret (or local `.env`). The process exits if it is missing.
+- Never put `CNS_API_KEY` in browser JavaScript, `NEXT_PUBLIC_*`, `VITE_*`, or any client-visible config. CORS is browser policy, not authentication — the API key is what protects CNS.
 
 ## Endpoints
 
@@ -45,7 +50,8 @@ CNS Memory Core exposes a REST API that allows AI agents and applications to sav
 git clone https://github.com/michael-chaves-dev/cns-memory-core
 cd cns-memory-core
 pip install -r requirements.txt
-cp .env.example .env
+cp .env.example .env   # set a real CNS_API_KEY before starting
+export $(grep -v '^#' .env | xargs)
 uvicorn main:app --reload
 ```
 
